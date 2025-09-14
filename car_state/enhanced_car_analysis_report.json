@@ -1,0 +1,134 @@
+{
+  "analysis_summary": {
+    "overall_integrity": 14.541981049946372,
+    "overall_grade": "КРИТИЧЕСКОЕ",
+    "total_zones": 7,
+    "damaged_zones": 7,
+    "analysis_timestamp": "2025-09-14T00:00:00Z"
+  },
+  "zone_details": [
+    {
+      "zone_name": "front",
+      "display_name": "Front",
+      "integrity_score": 10.18,
+      "damage_class": "minor_damage",
+      "damage_probability": 89.82,
+      "model_confidence": 48.47,
+      "bbox": [
+        160,
+        180,
+        640,
+        420
+      ],
+      "color_code": "#FFA500"
+    },
+    {
+      "zone_name": "rear",
+      "display_name": "Rear",
+      "integrity_score": 16.19,
+      "damage_class": "major_damage",
+      "damage_probability": 83.81,
+      "model_confidence": 52.82,
+      "bbox": [
+        160,
+        420,
+        640,
+        600
+      ],
+      "color_code": "#FF0000"
+    },
+    {
+      "zone_name": "roof",
+      "display_name": "Roof",
+      "integrity_score": 18.94,
+      "damage_class": "major_damage",
+      "damage_probability": 81.06,
+      "model_confidence": 62.1,
+      "bbox": [
+        200,
+        0,
+        600,
+        180
+      ],
+      "color_code": "#FF0000"
+    },
+    {
+      "zone_name": "left_side",
+      "display_name": "Left Side",
+      "integrity_score": 23.92,
+      "damage_class": "major_damage",
+      "damage_probability": 76.08,
+      "model_confidence": 47.11,
+      "bbox": [
+        0,
+        120,
+        320,
+        480
+      ],
+      "color_code": "#FF0000"
+    },
+    {
+      "zone_name": "right_side",
+      "display_name": "Right Side",
+      "integrity_score": 13.07,
+      "damage_class": "major_damage",
+      "damage_probability": 86.93,
+      "model_confidence": 43.62,
+      "bbox": [
+        480,
+        120,
+        800,
+        480
+      ],
+      "color_code": "#FF0000"
+    },
+    {
+      "zone_name": "hood",
+      "display_name": "Hood",
+      "integrity_score": 8.4,
+      "damage_class": "major_damage",
+      "damage_probability": 91.6,
+      "model_confidence": 72.48,
+      "bbox": [
+        240,
+        90,
+        560,
+        270
+      ],
+      "color_code": "#FF0000"
+    },
+    {
+      "zone_name": "trunk",
+      "display_name": "Trunk",
+      "integrity_score": 11.09,
+      "damage_class": "major_damage",
+      "damage_probability": 88.91,
+      "model_confidence": 67.28,
+      "bbox": [
+        240,
+        330,
+        560,
+        510
+      ],
+      "color_code": "#FF0000"
+    }
+  ],
+  "recommendations": [
+    "Требуется срочный комплексный ремонт",
+    "Срочный ремонт зоны: rear",
+    "Срочный ремонт зоны: roof",
+    "Срочный ремонт зоны: left side",
+    "Срочный ремонт зоны: right side",
+    "Срочный ремонт зоны: hood",
+    "Срочный ремонт зоны: trunk"
+  ],
+  "model_info": {
+    "model_type": "MulticlassDamageModel",
+    "classes": [
+      "no_damage",
+      "minor_damage",
+      "major_damage"
+    ],
+    "confidence_threshold": 0.5
+  }
+}

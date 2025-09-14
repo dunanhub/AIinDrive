@@ -1,0 +1,100 @@
+{
+  "overall_integrity": 14.541981049946372,
+  "overall_grade": "КРИТИЧЕСКОЕ",
+  "total_zones": 7,
+  "damaged_zones": 7,
+  "original_image": "demo_car.jpg",
+  "zones": [
+    {
+      "name": "front",
+      "integrity_score": 10.180848836898804,
+      "damage_class": "minor_damage",
+      "damage_probability": 0.898191511631012,
+      "confidence": 0.4846968650817871,
+      "bbox": [
+        160,
+        180,
+        640,
+        420
+      ]
+    },
+    {
+      "name": "rear",
+      "integrity_score": 16.190683841705322,
+      "damage_class": "major_damage",
+      "damage_probability": 0.8380931615829468,
+      "confidence": 0.5281882286071777,
+      "bbox": [
+        160,
+        420,
+        640,
+        600
+      ]
+    },
+    {
+      "name": "roof",
+      "integrity_score": 18.938177824020386,
+      "damage_class": "major_damage",
+      "damage_probability": 0.8106182217597961,
+      "confidence": 0.6210213899612427,
+      "bbox": [
+        200,
+        0,
+        600,
+        180
+      ]
+    },
+    {
+      "name": "left_side",
+      "integrity_score": 23.92069101333618,
+      "damage_class": "major_damage",
+      "damage_probability": 0.7607930898666382,
+      "confidence": 0.47112444043159485,
+      "bbox": [
+        0,
+        120,
+        320,
+        480
+      ]
+    },
+    {
+      "name": "right_side",
+      "integrity_score": 13.067150115966797,
+      "damage_class": "major_damage",
+      "damage_probability": 0.869328498840332,
+      "confidence": 0.4362037479877472,
+      "bbox": [
+        480,
+        120,
+        800,
+        480
+      ]
+    },
+    {
+      "name": "hood",
+      "integrity_score": 8.40422511100769,
+      "damage_class": "major_damage",
+      "damage_probability": 0.9159577488899231,
+      "confidence": 0.7247540950775146,
+      "bbox": [
+        240,
+        90,
+        560,
+        270
+      ]
+    },
+    {
+      "name": "trunk",
+      "integrity_score": 11.092090606689453,
+      "damage_class": "major_damage",
+      "damage_probability": 0.8890790939331055,
+      "confidence": 0.6728421449661255,
+      "bbox": [
+        240,
+        330,
+        560,
+        510
+      ]
+    }
+  ]
+}

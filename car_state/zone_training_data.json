@@ -1,0 +1,47 @@
+[
+  {
+    "image_path": "demo_car.jpg",
+    "zones": [
+      {
+        "name": "front",
+        "bbox": [
+          160,
+          180,
+          640,
+          420
+        ],
+        "damage_class": 1
+      },
+      {
+        "name": "rear",
+        "bbox": [
+          160,
+          420,
+          640,
+          600
+        ],
+        "damage_class": 0
+      },
+      {
+        "name": "roof",
+        "bbox": [
+          200,
+          0,
+          600,
+          180
+        ],
+        "damage_class": 0
+      },
+      {
+        "name": "hood",
+        "bbox": [
+          240,
+          90,
+          560,
+          270
+        ],
+        "damage_class": 2
+      }
+    ]
+  }
+]

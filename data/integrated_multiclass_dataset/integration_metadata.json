@@ -1,0 +1,61 @@
+{
+  "integration_date": "2025-09-13",
+  "source_datasets": {
+    "car_v2": "C:\\Users\\Димаш\\Desktop\\python\\hackaton\\data\\car.v2i.multiclass",
+    "car_damages_v3": "C:\\Users\\Димаш\\Desktop\\python\\hackaton\\data\\Car damages.v3i.multiclass"
+  },
+  "mapping_strategies": {
+    "car_v2": {
+      "csv_columns": [
+        "filename",
+        "bus",
+        "car",
+        "repair-car",
+        "truck"
+      ],
+      "class_mapping": {
+        "car": 0,
+        "repair-car": 1,
+        "bus": 1,
+        "truck": 1
+      },
+      "description": "Датасет транспорта с one-hot кодированием"
+    },
+    "car_damages_v3": {
+      "csv_columns": [
+        "filename",
+        "dent",
+        "good_condition",
+        "scratch",
+        "severe damage"
+      ],
+      "class_mapping": {
+        "good_condition": 0,
+        "scratch": 1,
+        "dent": 1,
+        "severe damage": 2
+      },
+      "description": "Датасет повреждений автомобилей"
+    }
+  },
+  "statistics": {
+    "total_images": 2176,
+    "datasets_processed": 2,
+    "class_distribution": {
+      "0": 1792,
+      "1": 280,
+      "2": 104
+    },
+    "split_distribution": {
+      "train": 1786,
+      "test": 86,
+      "valid": 304
+    },
+    "errors": []
+  },
+  "class_names": [
+    "no_damage",
+    "minor_damage",
+    "major_damage"
+  ]
+}
