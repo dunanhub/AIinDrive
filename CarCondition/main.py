@@ -17,22 +17,51 @@ app.add_middleware(
 
 class Prediction(BaseModel):
     filename: str
+    
+    # Основные поля (совместимость)
     dirty: bool
     dirty_prob: float
     damaged: bool
     damaged_prob: float
-    predicted_class: Optional[str] = None         # новое: класс повреждения
-    confidence: Optional[float] = None            # новое: уверенность модели
-    probabilities: Optional[Dict[str, float]] = None  # новое: вероятности классов
-    dirt_metrics: Optional[Dict[str, float]] = None   # новое: метрики грязи
-    dirt_status: Optional[str] = None             # новое: статус загрязненности
-    dirt_emoji: Optional[str] = None              # новое: эмодзи загрязненности
-    model_available: Optional[bool] = None        # новое: доступность модели
-    expert_recommendations: Optional[List[str]] = None  # новое: экспертные рекомендации
-    error: Optional[str] = None                   # новое: код ошибки
-    message: Optional[str] = None                 # новое: сообщение об ошибке
-    parts: Optional[Dict[str, int]] = None        # старое: для совместимости
-    debug: Optional[dict] = None                  # только для /predict-debug
+    
+    # Классификация повреждений
+    predicted_class: Optional[str] = None         
+    confidence: Optional[float] = None            
+    probabilities: Optional[Dict[str, float]] = None  
+    
+    # Продвинутый анализ загрязнения v2.0
+    dirt_status: Optional[str] = None             # статус загрязненности
+    dirt_emoji: Optional[str] = None              # эмодзи загрязненности
+    dirt_score: Optional[float] = None            # оценка загрязнения 0-10
+    dirt_metrics: Optional[Dict] = None           # детальные метрики грязи
+    dirt_recommendation: Optional[str] = None     # рекомендация по мойке
+    
+    # Качество анализа
+    quality_metrics: Optional[Dict] = None        # метрики качества изображения
+    
+    # Экспертная оценка v2.0
+    expert_assessment: Optional[List[str]] = None # экспертное заключение
+    
+    # Оценка для такси
+    taxi_status: Optional[str] = None             # статус пригодности для такси
+    taxi_recommendations: Optional[List[str]] = None  # рекомендации для такси
+    economic_info: Optional[Dict] = None          # экономическая оценка
+    
+    # Технические поля
+    model_available: Optional[bool] = None        
+    analysis_version: Optional[str] = None        # версия анализа
+    cv_available: Optional[bool] = None           # доступность OpenCV
+    
+    # Обработка ошибок
+    error: Optional[str] = None                   
+    message: Optional[str] = None                 
+    
+    # Совместимость со старыми версиями
+    parts: Optional[Dict[str, int]] = None        
+    expert_recommendations: Optional[List[str]] = None  # deprecated, используйте expert_assessment
+    
+    # Debug информация (только для /predict-debug)
+    debug: Optional[dict] = None
 
 class PredictResponse(BaseModel):
     results: List[Prediction]

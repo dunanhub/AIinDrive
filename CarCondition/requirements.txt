@@ -7,3 +7,7 @@ numpy
 torch
 torchvision
 python-dotenv
+# Новые зависимости для продвинутого анализа v2.0
+opencv-python
+scipy
+scikit-image
