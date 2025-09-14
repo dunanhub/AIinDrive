@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from CarCondition.inference_old import analyze_image, debug_analyze_image
+from inference import analyze_image, debug_analyze_image
 
 app = FastAPI(title="AI-inDrive Backend", version="0.1.0")
 

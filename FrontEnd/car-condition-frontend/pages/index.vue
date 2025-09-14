@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import CarScan from '~/components/CarScan.vue'
 import CarTopView from '~/components/CarTopView.vue'
 import type { PredictResp } from '~/composables/usePredict'
@@ -14,8 +14,11 @@ const isDragOver = ref(false)
 const scanning = ref(false)
 const progress = ref(0)
 const error = ref('')
+const showPhotos = ref(false) // переключатель между 3D-видом и фотографиями
+const selectedPhoto = ref<Item | null>(null) // для модального окна
+const showModal = ref(false) // показывать ли модальное окно
 
-function toStep1(){ step.value = 1; items.value=[]; progress.value=0; error.value='' }
+function toStep1(){ step.value = 1; items.value=[]; progress.value=0; error.value=''; showPhotos.value = false; closeModal() }
 
 function addFiles(list: FileList | null) {
   if (!list) return
@@ -32,6 +35,44 @@ function onDragLeave(e: DragEvent){ e.preventDefault(); isDragOver.value=false }
 function removeAt(i: number){ URL.revokeObjectURL(items.value[i].url); items.value.splice(i,1) }
 
 const canAnalyze = computed(()=> items.value.length>0 && !scanning.value)
+
+// Функция для переключения режима отображения
+function toggleView() {
+  showPhotos.value = !showPhotos.value
+}
+
+// Функции для модального окна
+function openModal(item: Item, index: number) {
+  selectedPhoto.value = item
+  showModal.value = true
+  // Блокируем скролл body
+  document.body.style.overflow = 'hidden'
+}
+
+function closeModal() {
+  selectedPhoto.value = null
+  showModal.value = false
+  // Восстанавливаем скролл body
+  document.body.style.overflow = 'auto'
+}
+
+// Закрытие модалки по Escape
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && showModal.value) {
+    closeModal()
+  }
+}
+
+// Монтируем обработчик клавиатуры
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+  // Восстанавливаем скролл при размонтировании
+  document.body.style.overflow = 'auto'
+})
 
 async function analyze() {
   if (!items.value.length) return
@@ -58,7 +99,8 @@ const agg = computed(() => {
 
   const cleanScore     = Math.round((1 - avgDirtyProb) * 100)
   const integrityScore = Math.round((1 - avgDamProb) * 100)
-  const overall        = Math.round((cleanScore + integrityScore) / 2)
+  // Взвешенная формула: Чистота 30% + Целостность 70%
+  const overall        = Math.round((cleanScore * 0.3) + (integrityScore * 0.7))
 
   let parts: Record<string, number> = {}
 
@@ -77,12 +119,14 @@ const agg = computed(() => {
     }
   } else {
     // синтетические значения, чтобы UI уже работал
+    // Используем взвешенную формулу и для частей автомобиля
+    const leftRight = Math.round((cleanScore * 0.3) + (integrityScore * 0.7))
     parts = {
-      left:  overall,
-      right: overall,
-      front: integrityScore,
-      rear:  integrityScore,
-      roof:  cleanScore
+      left:  leftRight,
+      right: leftRight,
+      front: integrityScore, // передняя часть больше связана с целостностью
+      rear:  integrityScore, // задняя часть больше связана с целостностью
+      roof:  Math.round((cleanScore * 0.5) + (integrityScore * 0.5)) // крыша 50/50
     }
   }
 
@@ -167,6 +211,20 @@ const recommendations = computed(() => {
 const brand = { green: '#c1f11d', black: '#141414', white: '#ffffff' }
 
 const passed = computed(() => agg.value.overall >= 80)
+
+// Функция для определения цвета на основе процента
+const getColorByScore = (score: number) => {
+  if (score <= 30) return '#ef4444' // красный (0-30%)
+  if (score <= 50) return '#f97316' // оранжевый (31-50%)
+  if (score <= 70) return '#eab308' // желтый (51-70%)
+  if (score <= 85) return '#22c55e' // зеленый (71-85%)
+  return '#10b981' // темно-зеленый (86-100%)
+}
+
+// Computed для цветов чипов
+const cleanScoreColor = computed(() => getColorByScore(agg.value.cleanScore))
+const integrityScoreColor = computed(() => getColorByScore(agg.value.integrityScore))
+const overallScoreColor = computed(() => getColorByScore(agg.value.overall))
 
 // Функции для отображения данных модели
 function getDamageClass(predictedClass?: string): string {
@@ -265,9 +323,59 @@ function getDamageLabel(predictedClass?: string): string {
 
       <!-- STEP 3: результаты -->
       <section v-if="step===3" class="result-grid">
-        <!-- ЛЕВЫЙ СТОЛБЕЦ: машина сверху -->
+        <!-- ЛЕВЫЙ СТОЛБЕЦ: 3D-вид или фотографии -->
         <div class="card">
-          <CarTopView :scores="agg.parts" :overall="agg.overall" />
+          <!-- Кнопка переключения вида -->
+          <div class="view-toggle">
+            <button 
+              class="toggle-btn" 
+              :class="{ active: !showPhotos }" 
+              @click="showPhotos = false"
+            >
+              📊 Анализ
+            </button>
+            <button 
+              class="toggle-btn" 
+              :class="{ active: showPhotos }" 
+              @click="showPhotos = true"
+            >
+              📷 Фото
+            </button>
+          </div>
+
+          <!-- 3D-вид с анализом (по умолчанию) -->
+          <div v-if="!showPhotos" class="view-content">
+            <CarTopView :scores="agg.parts" :overall="agg.overall" />
+          </div>
+
+          <!-- Фотогалерея -->
+          <div v-else class="view-content">
+            <div class="photo-gallery">
+              <h4>Загруженные фотографии</h4>
+              <div class="photos-grid">
+                <div v-for="(item, index) in items" :key="index" class="photo-item">
+                  <img 
+                    :src="item.url" 
+                    :alt="`Фото ${index + 1}`" 
+                    class="gallery-photo clickable" 
+                    @click="openModal(item, index)"
+                  />
+                  <div class="photo-info">
+                    <span class="photo-label">Фото {{ index + 1 }}</span>
+                    <div v-if="item.result" class="photo-score">
+                      <span v-if="item.result.predicted_class" 
+                            :class="getDamageClass(item.result.predicted_class)">
+                        {{ getDamageLabel(item.result.predicted_class) }}
+                      </span>
+                      <span v-if="item.result.confidence" class="confidence">
+                        {{ Math.round((item.result.confidence || 0) * 100) }}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ПРАВЫЙ СТОЛБЕЦ: сводка/советы/кнопки -->
@@ -276,10 +384,23 @@ function getDamageLabel(predictedClass?: string): string {
           <p class="muted">На основе {{ items.length }} фото</p>
 
           <div class="chips">
-            <div class="chip"><span>Чистота</span><b>{{ agg.cleanScore }}%</b></div>
-            <div class="chip qw"><span>Целостность</span><b>{{ agg.integrityScore }}%</b></div>
-            <div class="chip total"><span>Итог</span><b>{{ agg.overall }}%</b></div>
+            <div class="chip" :style="{ borderColor: cleanScoreColor }">
+              <span>Чистота</span>
+              <b :style="{ color: cleanScoreColor }">{{ agg.cleanScore }}%</b>
+            </div>
+            <div class="chip qw" :style="{ borderColor: integrityScoreColor }">
+              <span>Целостность</span>
+              <b :style="{ color: integrityScoreColor }">{{ agg.integrityScore }}%</b>
+            </div>
+            <div class="chip total" :style="{ borderColor: overallScoreColor }">
+              <span>Итог</span>
+              <b :style="{ color: overallScoreColor }">{{ agg.overall }}%</b>
+            </div>
           </div>
+          
+          <p class="formula-note">
+            💡 Итог = Чистота×30% + Целостность×70%
+          </p>
 
           <h4>Рекомендации ИИ-эксперта</h4>
           <ul class="bullet smart-recommendations">
@@ -360,6 +481,41 @@ function getDamageLabel(predictedClass?: string): string {
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- Модальное окно для просмотра фото -->
+  <div v-if="showModal && selectedPhoto" class="photo-modal" @click.self="closeModal">
+    <div class="modal-content">
+      <button class="modal-close" @click="closeModal">×</button>
+      <div class="modal-image-container">
+        <img :src="selectedPhoto.url" :alt="'Полноэкранный просмотр'" class="modal-image" />
+      </div>
+      <div class="modal-info">
+        <h3>Детальный анализ</h3>
+        <div v-if="selectedPhoto.result" class="modal-analysis">
+          <div class="analysis-row">
+            <span>Класс повреждений:</span>
+            <b :class="getDamageClass(selectedPhoto.result.predicted_class)">
+              {{ getDamageLabel(selectedPhoto.result.predicted_class) }}
+            </b>
+          </div>
+          <div class="analysis-row">
+            <span>Уверенность модели:</span>
+            <b>{{ Math.round((selectedPhoto.result.confidence || 0) * 100) }}%</b>
+          </div>
+          <div v-if="selectedPhoto.result.dirt_status" class="analysis-row">
+            <span>Состояние чистоты:</span>
+            <b>{{ selectedPhoto.result.dirt_emoji }} {{ selectedPhoto.result.dirt_status }}</b>
+          </div>
+          <div v-if="selectedPhoto.result.expert_recommendations?.length" class="modal-recommendations">
+            <h4>Рекомендации для этого фото:</h4>
+            <ul>
+              <li v-for="rec in selectedPhoto.result.expert_recommendations" :key="rec" v-html="rec"></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -605,6 +761,11 @@ h1 { margin: 6px 0 6px; }
 .chip span{ color:#666; }
 .chip b{ font-size:1.1rem; }
 
+.formula-note{
+  color:#666; font-size:0.85rem; margin:8px 0 12px; text-align:center;
+  background:#f8f9fa; padding:6px 12px; border-radius:8px;
+}
+
 .bullet{ margin:6px 0 0 18px; }
 .spacer{ flex:1; } /* всё, что ниже, уезжает к низу карточки */
 
@@ -731,4 +892,282 @@ h1 { margin: 6px 0 6px; }
 .prob-fill.good { background: linear-gradient(90deg, #28a745, #20c997); }
 .prob-fill.warn { background: linear-gradient(90deg, #ffc107, #fd7e14); }
 .prob-fill.danger { background: linear-gradient(90deg, #dc3545, #e83e8c); }
+
+/* Переключатель видов */
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6c757d;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.toggle-btn.active {
+  background: #fff;
+  color: #212529;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Контейнер контента с анимацией */
+.view-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Фотогалерея */
+.photo-gallery h4 {
+  margin: 0 0 16px 0;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.photo-item {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.photo-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.gallery-photo {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.gallery-photo.clickable {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.gallery-photo.clickable:hover {
+  opacity: 0.8;
+}
+
+.photo-info {
+  padding: 8px 12px;
+}
+
+.photo-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.photo-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.confidence {
+  color: #495057;
+  font-weight: 600;
+}
+
+/* Модальное окно для просмотра фото */
+.photo-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.modal-image-container {
+  position: relative;
+  max-height: 60vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.modal-info {
+  padding: 20px;
+  background: white;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.modal-info h3 {
+  margin: 0 0 16px 0;
+  color: #343a40;
+  font-size: 1.2rem;
+}
+
+.modal-analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analysis-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.analysis-row:last-child {
+  border-bottom: none;
+}
+
+.analysis-row span {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.analysis-row b {
+  font-weight: 600;
+}
+
+.modal-recommendations {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+.modal-recommendations h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 1rem;
+}
+
+.modal-recommendations ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: disc;
+}
+
+.modal-recommendations li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #495057;
+}
+
+@media (max-width: 768px) {
+  .photos-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .gallery-photo {
+    height: 100px;
+  }
+
+  .modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+
+  .modal-image-container {
+    max-height: 50vh;
+  }
+
+  .modal-info {
+    max-height: 40vh;
+    padding: 16px;
+  }
+
+  .modal-close {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+}
 </style>

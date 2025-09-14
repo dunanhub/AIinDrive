@@ -31,11 +31,25 @@ REM --- Python chooser (py -3 preferred) ---
 where py >nul 2>&1 && (set "PYCMD=py -3") || (set "PYCMD=python")
 echo Using Python launcher: %PYCMD%
 
+REM --- Test Python is working ---
+%PYCMD% --version >nul 2>&1
+if %errorlevel% neq 0 (
+  echo ERROR: Python not found or not working. Please install Python.
+  pause
+  exit /b 1
+)
+
 REM --- venv create (if missing) ---
 if not exist "%BACK%\.venv\Scripts\python.exe" (
   echo Creating virtualenv in CarCondition\.venv
   pushd "%BACK%"
   %PYCMD% -m venv .venv
+  if %errorlevel% neq 0 (
+    echo ERROR: Failed to create virtual environment
+    popd
+    pause
+    exit /b 1
+  )
   popd
 )
 
@@ -45,11 +59,22 @@ set "VENV_PIP=%BACK%\.venv\Scripts\pip.exe"
 REM --- backend deps ---
 echo Upgrading pip and installing backend deps...
 "%VENV_PY%" -m pip install --upgrade pip
+if %errorlevel% neq 0 (
+  echo ERROR: Failed to upgrade pip
+  pause
+  exit /b 1
+)
+
 "%VENV_PIP%" install -r "%BACK%\requirements.txt"
+if %errorlevel% neq 0 (
+  echo ERROR: Failed to install backend dependencies
+  pause
+  exit /b 1
+)
 
 REM --- start backend in new window ---
 echo Starting FastAPI on :8000 ...
-start "FastAPI :8000" cmd /k "%VENV_PY% -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+start "FastAPI :8000" cmd /k "cd /d "%BACK%" && "%VENV_PY%" -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
 REM --- frontend deps ---
 pushd "%FRONT%"
@@ -58,12 +83,12 @@ if %errorlevel%==0 (
   echo Installing frontend deps with pnpm...
   pnpm install
   echo Starting Nuxt on :3000 ...
-  start "Nuxt :3000" cmd /k pnpm dev
+  start "Nuxt :3000" cmd /k "cd /d "%FRONT%" && pnpm dev"
 ) else (
   echo pnpm not found. Using npm...
   call npm install
   echo Starting Nuxt on :3000 ...
-  start "Nuxt :3000" cmd /k npm run dev
+  start "Nuxt :3000" cmd /k "cd /d "%FRONT%" && npm run dev"
 )
 popd
 
