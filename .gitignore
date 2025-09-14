@@ -1,0 +1,15 @@
+# venv / кеш
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# артефакты обучения и демо-выводы
+training_results/**
+*.pth
+*.pt
+*.ckpt
+*.onnx
+test_*.jpg
+zones_detection_demo.jpg
