@@ -698,6 +698,36 @@ def analyze_image(img_bytes: bytes) -> Dict:
     major_damage_prob = probabilities[2] * 100
     damaged_prob = 1.0 - probabilities[0]  # 1 - no_damage
     
+    # Расчет целостности автомобиля (обратная к поврежденности)
+    integrity_score = no_damage_prob  # Целостность = вероятность отсутствия повреждений
+    
+    # 🎯 НОВАЯ ЛОГИКА: Коррекция чистоты в зависимости от целостности
+    original_dirt_score = dirt_score
+    original_dirt_status = dirt_status
+    
+    if integrity_score < 20:  # Если целостность ниже 20%
+        # Принудительно снижаем чистоту до ~15% (dirt_score ~8.5/10)
+        corrected_dirt_score = max(dirt_score, 8.5)  # Минимум 8.5 из 10 (очень грязная)
+        
+        # Обновляем статус загрязнения
+        if corrected_dirt_score >= 8.5:
+            dirt_status = "критически грязная"
+            dirt_emoji = "🟫" 
+            dirt_recommendation = "СРОЧНАЯ профессиональная мойка + детейлинг (скрывает повреждения)"
+        
+        # Обновляем dirt_score
+        dirt_score = corrected_dirt_score
+        
+        # Добавляем предупреждение в метрики
+        dirt_metrics['integrity_correction'] = True
+        dirt_metrics['original_dirt_score'] = original_dirt_score
+        dirt_metrics['corrected_reason'] = f"Низкая целостность ({integrity_score:.1f}%) - грязь может маскировать серьезные повреждения"
+        
+        print(f"⚠️ Коррекция чистоты: {original_dirt_score:.1f} → {dirt_score:.1f} (целостность: {integrity_score:.1f}%)")
+    else:
+        # Отмечаем, что коррекция не применялась
+        dirt_metrics['integrity_correction'] = False
+    
     # Улучшенная оценка для такси
     taxi_status, taxi_msgs, economic_status = determine_repairability_enhanced(
         predicted_class, confidence, major_damage_prob, quality_metrics, dirt_status, dirt_score
@@ -707,7 +737,14 @@ def analyze_image(img_bytes: bytes) -> Dict:
     expert_assessment = []
     expert_assessment.append(f"🤖 ИИ-ДИАГНОСТИКА v2.0: {predicted_class.replace('_', ' ').upper()}")
     expert_assessment.append(f"🎯 Уверенность: {confidence*100:.1f}%")
+    expert_assessment.append(f"🔧 Целостность: {integrity_score:.1f}%")
     expert_assessment.append(f"🧼 Загрязнение: {dirt_status} ({dirt_score:.1f}/10)")
+    
+    # Добавляем информацию о коррекции, если она была применена
+    if dirt_metrics.get('integrity_correction', False):
+        expert_assessment.append(f"⚠️ КОРРЕКЦИЯ: Чистота скорректирована с {original_dirt_score:.1f} до {dirt_score:.1f}")
+        expert_assessment.append(f"📊 Причина: Низкая целостность может маскировать повреждения грязью")
+    
     expert_assessment.append(f"🚕 Статус для такси: {taxi_status.replace('_', ' ').upper()}")
     
     # Качество анализа
@@ -737,6 +774,7 @@ def analyze_image(img_bytes: bytes) -> Dict:
         },
         
         # Новые продвинутые поля
+        "integrity_score": round(integrity_score, 2),  # Новое поле - целостность автомобиля
         "dirt_status": dirt_status,
         "dirt_emoji": dirt_emoji,
         "dirt_score": round(dirt_score, 2),

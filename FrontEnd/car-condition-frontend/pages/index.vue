@@ -97,8 +97,13 @@ const agg = computed(() => {
   const avgDirtyProb = arr.reduce((s, r) => s + (r.dirty_prob ?? 0), 0) / n
   const avgDamProb   = arr.reduce((s, r) => s + (r.damaged_prob ?? 0), 0) / n
 
-  const cleanScore     = Math.round((1 - avgDirtyProb) * 100)
-  const integrityScore = Math.round((1 - avgDamProb) * 100)
+  const cleanScore = Math.round((1 - avgDirtyProb) * 100)
+  
+  // Используем новое поле integrity_score, если доступно, иначе вычисляем из damaged_prob
+  const integrityScore = arr.some(r => r.integrity_score !== undefined) 
+    ? Math.round(arr.reduce((s, r) => s + (r.integrity_score ?? 0), 0) / n)
+    : Math.round((1 - avgDamProb) * 100)
+  
   // Взвешенная формула: Чистота 30% + Целостность 70%
   const overall        = Math.round((cleanScore * 0.3) + (integrityScore * 0.7))
 
@@ -157,7 +162,6 @@ const recommendations = computed(() => {
     const avgConfidence = minorDamageItems.reduce((sum, r) => sum + (r.confidence || 0), 0) / minorDamageItems.length
     if (avgConfidence > 0.7) {
       recommendations.push('🔧 Обнаружены мелкие повреждения (царапины, потертости). Косметический ремонт желателен.')
-      recommendations.push('💰 Ориентировочные затраты: 30-100 тыс. руб.')
     }
   } else if (noDamageItems.length === arr.length) {
     const avgConfidence = noDamageItems.reduce((sum, r) => sum + (r.confidence || 0), 0) / noDamageItems.length
@@ -171,12 +175,19 @@ const recommendations = computed(() => {
 
   // Анализ загрязненности на основе dirt_metrics
   const avgDirtScore = arr.reduce((sum, r) => sum + (r.dirt_metrics?.dirt_score || 0), 0) / arr.length
+  
+  // Проверяем, была ли применена корректировка из-за низкой целостности
+  const hasIntegrityCorrection = arr.some(r => r.integrity_score !== undefined && r.integrity_score < 20)
+  if (hasIntegrityCorrection) {
+    recommendations.push('⚠️ КОРРЕКЦИЯ ОЦЕНКИ: При низкой целостности (<20%) автоматически снижена оценка чистоты для реалистичной оценки.')
+    recommendations.push('🚨 Серьезные повреждения требуют первоочередного внимания, независимо от внешней чистоты.')
+  }
+  
   if (avgDirtScore > 6) {
     recommendations.push('🧼 КРИТИЧЕСКОЕ ЗАГРЯЗНЕНИЕ: Автомобиль слишком грязный для перевозки пассажиров.')
     recommendations.push('📉 Нарушение стандартов имиджа такси-сервиса. Требуется немедленная профессиональная мойка.')
   } else if (avgDirtScore > 4) {
     recommendations.push('🧽 Рекомендуется комплексная мойка перед выходом на линию.')
-    recommendations.push('💰 Затраты: 1.5-3 тыс. руб. на качественную мойку.')
   } else if (avgDirtScore < 2) {
     recommendations.push('✨ Превосходная чистота! Автомобиль содержится в идеальном состоянии.')
   }
@@ -370,6 +381,16 @@ function getDamageLabel(predictedClass?: string): string {
                       <span v-if="item.result.confidence" class="confidence">
                         {{ Math.round((item.result.confidence || 0) * 100) }}%
                       </span>
+                      <div v-if="item.result.integrity_score !== undefined" class="integrity-info">
+                        <span class="integrity-label">Целостность:</span>
+                        <span class="integrity-value" :style="{ color: getColorByScore(item.result.integrity_score) }">
+                          {{ Math.round(item.result.integrity_score) }}%
+                        </span>
+                      </div>
+                      <div v-if="item.result.dirt_score !== undefined" class="dirt-info">
+                        <span class="dirt-emoji">{{ item.result.dirt_emoji || '🧼' }}</span>
+                        <span class="dirt-status">{{ item.result.dirt_status || 'Анализ...' }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -502,6 +523,15 @@ function getDamageLabel(predictedClass?: string): string {
           <div class="analysis-row">
             <span>Уверенность модели:</span>
             <b>{{ Math.round((selectedPhoto.result.confidence || 0) * 100) }}%</b>
+          </div>
+          <div v-if="selectedPhoto.result.integrity_score !== undefined" class="analysis-row">
+            <span>Оценка целостности:</span>
+            <b :style="{ color: getColorByScore(selectedPhoto.result.integrity_score) }">
+              {{ Math.round(selectedPhoto.result.integrity_score) }}%
+            </b>
+            <span v-if="selectedPhoto.result.integrity_score < 20" class="correction-note">
+              ⚠️ Применена коррекция оценки чистоты
+            </span>
           </div>
           <div v-if="selectedPhoto.result.dirt_status" class="analysis-row">
             <span>Состояние чистоты:</span>
@@ -1005,6 +1035,38 @@ h1 { margin: 6px 0 6px; }
 .confidence {
   color: #495057;
   font-weight: 600;
+}
+
+.integrity-info, .dirt-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
+
+.integrity-label {
+  color: #6c757d;
+}
+
+.integrity-value {
+  font-weight: 600;
+}
+
+.dirt-emoji {
+  font-size: 0.9rem;
+}
+
+.dirt-status {
+  color: #495057;
+  font-weight: 500;
+}
+
+.correction-note {
+  font-size: 0.7rem;
+  color: #dc3545;
+  margin-left: 8px;
+  font-weight: 500;
 }
 
 /* Модальное окно для просмотра фото */

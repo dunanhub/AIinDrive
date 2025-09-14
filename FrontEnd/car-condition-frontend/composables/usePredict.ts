@@ -7,6 +7,7 @@ export type PredictResp = {
   // Новые поля от обновленной модели
   predicted_class?: string      // "no_damage" | "minor_damage" | "major_damage"
   confidence?: number           // 0..1 - уверенность модели
+  integrity_score?: number      // 0..100 - новое поле целостности
   probabilities?: {
     no_damage?: number
     minor_damage?: number
@@ -21,6 +22,11 @@ export type PredictResp = {
     brightness?: number
     dirt_score?: number
   }
+  dirt_status?: string         // статус загрязнения
+  dirt_emoji?: string          // эмодзи для загрязнения
+  dirt_score?: number          // 0..10 - оценка загрязнения
+  expert_recommendations?: string[]  // экспертные рекомендации от ИИ
+  expert_assessment?: string   // детальная экспертная оценка
   model_available?: boolean     // доступность модели
   
   // Старые поля для совместимости
