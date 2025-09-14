@@ -1,0 +1,35 @@
+# Git attributes for proper line ending handling
+# Auto detect text files and perform LF normalization
+* text=auto
+# Force LF for shell scripts (Unix-style)
+*.sh text eol=lf
+# Force CRLF for Windows batch files
+*.bat text eol=crlf
+# Force LF for web files
+*.js text eol=lf
+*.ts text eol=lf
+*.vue text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+# Force LF for Python files
+*.py text eol=lf
+*.txt text eol=lf
+# Git LFS for large files
+*.pth filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
+# Binary files
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+# Node modules (should be ignored anyway)
+node_modules/ binary
